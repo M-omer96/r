@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>تذكير البطاقات</title>
+
+  <!-- Manifest -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#ffffff"/>
+
+  <!-- PWA Icons -->
+  <link rel="apple-touch-icon" href="icon.png">
+
+  <style>
+    body { font-family: 'Arial'; background: #f1f1f1; padding: 20px; text-align: right; }
+    h1 { text-align: center; }
+    input, button { width: 100%; padding: 10px; margin: 5px 0; font-size: 16px; }
+    .card { background: #fff; padding: 10px; margin-top: 10px; border-right: 6px solid green; }
+    .card.expiring { border-right-color: orange; }
+    .card.expired { border-right-color: red; }
+  </style>
+</head>
+<body>
+
+  <h1>تذكير البطاقات</h1>
+
+  <input type="text" id="cardName" placeholder="اسم البطاقة">
+  <input type="date" id="expiryDate">
+  <button onclick="addCard()">إضافة بطاقة</button>
+
+  <h2>قائمة البطاقات:</h2>
+  <div id="cardsList"></div>
+
+  <script>
+    function loadCards() {
+      const cards = JSON.parse(localStorage.getItem('cards') || '[]');
+      const list = document.getElementById('cardsList');
+      list.innerHTML = '';
+      const today = new Date();
+      const noticeDays = 30;
+
+      cards.forEach(card => {
+        const expiry = new Date(card.expiry);
+        const diffTime = expiry - today;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        const cardDiv = document.createElement('div');
+        cardDiv.className = 'card';
+
+        if (diffDays < 0) cardDiv.classList.add('expired');
+        else if (diffDays <= noticeDays) cardDiv.classList.add('expiring');
+
+        cardDiv.innerHTML = `<strong>${card.name}</strong><br>ينتهي في: ${card.expiry}<br><small>${diffDays < 0 ? "❌ منتهي" : diffDays + " يوم متبقي"}</small>`;
+        list.appendChild(cardDiv);
+      });
+    }
+
+    function addCard() {
+      const name = document.getElementById('cardName').value.trim();
+      const expiry = document.getElementById('expiryDate').value;
+      if (!name || !expiry) return alert("الرجاء إدخال اسم البطاقة وتاريخ الانتهاء.");
+
+      const cards = JSON.parse(localStorage.getItem('cards') || '[]');
+      cards.push({ name, expiry });
+      localStorage.setItem('cards', JSON.stringify(cards));
+      document.getElementById('cardName').value = '';
+      document.getElementById('expiryDate').value = '';
+      loadCards();
+    }
+
+    loadCards();
+
+    // تسجيل الـ Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js');
+    }
+  </script>
+
+</body>
+</html>
